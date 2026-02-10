@@ -1,0 +1,563 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// 用户类型枚举
+enum UserType {
+  SYSTEM_ADMIN // 系统管理员
+  FRONTEND_USER // 前台用户
+  THIRD_PARTY // 三方登录用户
+}
+
+// 菜单类型枚举
+enum MenuType {
+  BUTTON // 按钮类型
+  MENU // 菜单类型
+  FOLDER // 目录类型
+}
+
+model User {
+  id           BigInt    @id @default(autoincrement()) // 用户ID,自增主键
+  username     String    @db.VarChar(30) // 用户名,登录账号
+  nickname     String?   @db.VarChar(100) // 用户昵称,显示名称
+  password     String    @db.VarChar(255) // 密码,加密存储
+  email        String?   @db.VarChar(255) // 电子邮箱
+  avatar       String?   @db.VarChar(255) // 头像URL地址
+  phone        String?   @db.VarChar(20) // 手机号码
+  status       Int       @default(1) // 账号状态:1启用,0禁用
+  lastLogin    DateTime? @map("last_login") // 最后登录时间
+  loginIp      String?   @map("login_ip") @db.VarChar(50) // 最后登录IP地址
+  createBy     String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime   DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy     String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime   DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+  userType     UserType  @default(SYSTEM_ADMIN) @map("user_type") // 用户类型
+  thirdParty   String?   @map("third_party") @db.VarChar(50) // 第三方登录提供商
+  thirdPartyId String?   @map("third_party_id") @db.VarChar(100) // 第三方登录唯一标识
+
+  // Relations
+  siteUsers SiteUser[]
+  userRoles UserRole[]
+  apiLogs   ApiLog[]
+
+  @@unique([username])
+  @@unique([email])
+  @@unique([phone])
+  @@map("user")
+}
+
+model Site {
+  id          BigInt    @id @default(autoincrement()) // 站点ID,自增主键
+  name        String    @db.VarChar(100) // 站点名称
+  code        String    @unique @db.VarChar(50) // 站点编码,唯一标识
+  domain      String?   @unique @db.VarChar(255) // 站点域名
+  description String?   @db.Text // 站点描述
+  logo        String?   @db.VarChar(255) // 站点logo URL
+  favicon     String?   @db.VarChar(255) // 站点favicon图标URL
+  status      Int       @default(1) // 站点状态:true启用,false禁用
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  // Relations
+  siteUsers       SiteUser[]
+  articles        Article[]
+  categories      ArticleCategory[]
+  tags            ArticleTag[]
+  banners         SiteBanner[]
+  bannerPositions SiteBannerPosition[]
+  privacyPolicies PrivacyPolicy[]
+  legalPolicies   LegalPolicy[]
+  contactUs       ContactUs[]
+  dictionaryTypes DictionaryType[]
+  media           Media[]
+  apiLogs         ApiLog[]
+
+  @@index([code])
+  @@map("site")
+}
+
+// 标签和媒体管理模型
+model ArticleTag {
+  id         BigInt    @id @default(autoincrement()) // 标签ID,自增主键
+  siteId     BigInt    @map("site_id") // 所属站点ID
+  name       String    @db.VarChar(50) // 标签名称
+  slug       String    @db.VarChar(50) // 标签别名,URL友好
+  color      String?   @db.VarChar(20) // 标签颜色
+  createBy   String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy   String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site     Site                @relation(fields: [siteId], references: [id])
+  articles ArticleArticleTag[]
+
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@map("article_tag")
+}
+
+// 权限和角色管理模型
+model Role {
+  id          BigInt     @id @default(autoincrement()) // 角色ID,自增主键
+  name        String     @db.VarChar(50) // 角色名称
+  code        String     @unique @db.VarChar(50) // 角色编码,唯一标识
+  description String?    @db.VarChar(1000) // 角色描述
+  createBy    String     @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime   @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?    @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime?  @map("update_time") @db.DateTime(0) // 更新时间
+  userRoles   UserRole[]
+  roleMenu    RoleMenu?  @relation(fields: [id], references: [roleId])
+
+  @@map("role")
+}
+
+// 添加角色菜单关联表
+model RoleMenu {
+  id         BigInt    @id @default(autoincrement()) // 关联ID,自增主键
+  roleId     BigInt    @unique @map("role_id") // 角色ID
+  menuIds    String    @map("menu_ids") @db.VarChar(5000) // 菜单ID
+  createBy   String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy   String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+  role       Role[]
+
+  @@index([roleId])
+  @@map("role_menu")
+}
+
+// 关联表
+model UserRole {
+  id         BigInt   @id @default(autoincrement()) // 关联ID,自增主键
+  userId     BigInt   @map("user_id") // 用户ID
+  roleId     BigInt   @map("role_id") // 角色ID
+  createTime DateTime @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_role")
+}
+
+model SiteUser {
+  id         BigInt   @id @default(autoincrement()) // 关联ID,自增主键
+  siteId     BigInt   @map("site_id") // 站点ID
+  userId     BigInt   @map("user_id") // 用户ID
+  createTime DateTime @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, userId])
+  @@index([siteId])
+  @@index([userId])
+  @@map("site_user")
+}
+
+// 文章相关的关联表
+model ArticleArticleTag {
+  id         BigInt   @id @default(autoincrement())
+  articleId  BigInt   @map("article_id")
+  tagId      BigInt   @map("tag_id")
+  createTime DateTime @default(now()) @map("create_time")
+
+  article Article    @relation("ArticleToArticleArticleTag", fields: [articleId], references: [id], onDelete: Cascade)
+  tag     ArticleTag @relation(fields: [tagId], references: [id])
+
+  @@unique([articleId, tagId])
+  @@index([articleId])
+  @@index([tagId])
+  @@map("article_article_tag")
+}
+
+model ArticleArticleCategory {
+  id         BigInt   @id @default(autoincrement())
+  articleId  BigInt   @map("article_id")
+  categoryId BigInt   @map("category_id")
+  createTime DateTime @default(now()) @map("create_time")
+
+  article  Article         @relation("ArticleToArticleCategory", fields: [articleId], references: [id], onDelete: Cascade)
+  category ArticleCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([articleId, categoryId])
+  @@index([articleId])
+  @@index([categoryId])
+  @@map("article_article_category")
+}
+
+model Article {
+  id               BigInt    @id @default(autoincrement()) // 文章ID,自增主键
+  siteId           BigInt    @map("site_id") // 所属站点ID
+  title            String    @db.VarChar(500) // 文章标题
+  slug             String    @db.VarChar(500) // 文章别名,URL友好
+  summary          String?   @db.Text // 文章摘要
+  content          String    @db.Text // 文章内容
+  imageUrl         String?   @db.VarChar(500) // 图片地址
+  imageMobileUrl   String?   @map("image_mobile_url") @db.VarChar(500)
+  videoUrl         String?   @db.VarChar(500) // 视频地址
+  status           Int       @default(1) // 状态:1启用 0 禁用
+  viewCount        Int       @default(0) @map("view_count") // 浏览次数
+  likeCount        Int       @default(0) @map("like_count") // 点赞次数
+  commentCount     Int       @default(0) @map("comment_count") // 评论次数
+  isTop            Int       @default(0) @map("is_top") // 是否置顶
+  isRecommend      Int       @default(0) @map("is_recommend") // 是否推荐
+  isHot            Int       @default(0) @map("is_hot") // 是否热门
+  isCommentEnabled Int       @default(1) @map("is_comment_enabled") // 是否允许评论
+  seoTitle         String?   @map("seo_title") @db.VarChar(500) // SEO标题
+  seoKeywords      String?   @map("seo_keywords") @db.VarChar(500) // SEO关键词
+  seoDescription   String?   @map("seo_description") @db.Text // SEO描述
+  sort             Int       @default(0) // 排序号
+  publishTime      DateTime? @map("publish_time") // 发布时间
+  createBy         String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime       DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy         String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime       DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  // Relations
+  site       Site                     @relation(fields: [siteId], references: [id])
+  tags       ArticleArticleTag[]      @relation("ArticleToArticleArticleTag")
+  categories ArticleArticleCategory[] @relation("ArticleToArticleCategory")
+
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@index([status])
+  @@index([createTime])
+  @@map("article")
+}
+
+model ArticleCategory {
+  id             BigInt    @id @default(autoincrement()) // 分类ID,自增主键
+  siteId         BigInt    @map("site_id") // 所属站点ID
+  name           String    @db.VarChar(100) // 分类名称
+  slug           String    @db.VarChar(100) // 分类别名,URL友好
+  description    String?   @db.Text // 分类描述
+  parentId       BigInt?   @map("parent_id") // 父级分类ID
+  seoTitle       String?   @map("seo_title") @db.VarChar(255) // SEO标题
+  seoKeywords    String?   @map("seo_keywords") @db.VarChar(255) // SEO关键词
+  seoDescription String?   @map("seo_description") @db.Text // SEO描述
+  createBy       String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime     DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy       String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime     DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site     Site                     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parent   ArticleCategory?         @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children ArticleCategory[]        @relation("CategoryHierarchy")
+  articles ArticleArticleCategory[]
+
+  @@unique([siteId, slug])
+  @@index([siteId])
+  @@index([parentId])
+  @@map("article_category")
+}
+
+// 添加后台菜单模型
+model AdminMenu {
+  id          BigInt    @id @default(autoincrement()) // 菜单ID,自增主键
+  parentId    BigInt    @default(-1) @map("parent_id") // 父级菜单ID
+  name        String    @default("") @db.VarChar(50) // 菜单名称
+  nameEn      String    @default("") @map("name_en") @db.VarChar(50) // 菜单英文名称
+  path        String    @db.VarChar(255) // 菜单路径
+  url         String?   @db.VarChar(255) // 组件路径
+  icon        String?   @db.VarChar(50) // 菜单图标
+  sortOrder   Int       @default(0) @map("sort_oder") // 排序号
+  permission  String?   @db.VarChar(255) // 权限标识
+  menuType    MenuType  @default(MENU) @map("menu_type") // 菜单类型:MENU菜单/BUTTON按钮/FOLDER目录
+  isKeepAlive Boolean   @default(false) @map("is_keep_alive") // 是否缓存
+  isAffix     Boolean   @default(false) @map("is_affix") // 是否固定
+  isHide      Boolean   @default(false) @map("is_hide") // 是否隐藏
+  isLink      Boolean   @default(false) @map("is_link") // 是否外链
+  isIframe    Boolean   @default(false) @map("is_iframe") // 是否内嵌
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  parent   AdminMenu?  @relation("AdminMenuHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children AdminMenu[] @relation("AdminMenuHierarchy")
+
+  @@index([parentId])
+  @@map("admin_menu")
+}
+
+// 添加Banner模型
+model SiteBanner {
+  id          BigInt    @id @default(autoincrement()) // BannerID,自增主键
+  siteId      BigInt    @map("site_id") // 站点ID
+  positionId  BigInt    @map("position_id") // Banner位置ID
+  title       String    @db.VarChar(500) // Banner标题
+  image       String?   @db.VarChar(500) // Banner图片
+  imageMobile String?   @db.VarChar(500) // Banner图片
+  video       String?   @db.VarChar(500) // Banner视频
+  url         String?   @db.VarChar(500) // 跳转链接
+  sort        Int       @default(0) // 排序号
+  jsondef     String?   @db.Text // 自定义json
+  publishTime DateTime? @map("publish_time") // 发布时间
+  status      Int       @default(1) // 状态:1启用/0禁用
+  startTime   DateTime? @map("start_time") // 展示开始时间
+  endTime     DateTime? @map("end_time") // 展示结束时间
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site     Site               @relation(fields: [siteId], references: [id])
+  position SiteBannerPosition @relation(fields: [positionId], references: [id])
+
+  @@index([siteId])
+  @@index([positionId])
+  @@map("site_banner")
+}
+
+// 添加 Banner 位置表
+model SiteBannerPosition {
+  id          BigInt    @id @default(autoincrement()) // 位置ID,自增主键
+  siteId      BigInt    @map("site_id") // 站点ID
+  name        String    @db.VarChar(250) // 位置名称
+  code        String    @db.VarChar(200) // 位置编码
+  description String?   @db.Text // 位置描述
+  status      Int       @default(1) // 状态:1启用/0禁用
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site    Site         @relation(fields: [siteId], references: [id])
+  banners SiteBanner[]
+
+  @@unique([siteId, code])
+  @@index([siteId])
+  @@map("site_banner_position")
+}
+
+model IamUser {
+  id              BigInt    @id @default(autoincrement()) // 用户ID,自增主键
+  username        String    @db.VarChar(30) // 用户名,登录账号
+  nickname        String?   @db.VarChar(100) // 用户昵称,显示名称
+  password        String    @db.VarChar(255) // 密码,加密存储
+  email           String?   @db.VarChar(255) // 电子邮箱
+  phone           String?   @db.VarChar(20) // 手机号码
+  employeeNumber  String    @unique @map("employee_number") @db.VarChar(50) // 工号(人员唯一ID)
+  gender          String?   @db.VarChar(10) // 性别
+  birthDate       String?   @map("birth_date") @db.VarChar(20) // 出生日期
+  userType        String?   @map("user_type") @db.VarChar(50) // 人员类型
+  organizationId  String?   @map("organization_id") @db.VarChar(50) // 所在机构ID
+  sequence        String?   @map("sequence") @db.VarChar(9) // 序号
+  enterpriseEmail String?   @map("enterprise_email") @db.VarChar(100) // 企业邮箱
+  adAccount       String?   @map("ad_account") @db.VarChar(50) // AD域账号
+  entryTime       String?   @map("entry_time") @db.VarChar(20) // 入职时间
+  displayName     String?   @map("display_name") @db.VarChar(100) // 显示名称
+  status          Int       @default(1) // 状态:1启用,0禁用
+  createTime      DateTime  @default(now()) @map("create_time") // 创建时间
+  updateTime      DateTime? @updatedAt @map("update_time") // 更新时间
+
+  @@index([employeeNumber])
+  @@index([status])
+  @@map("iam_user")
+}
+
+// 隐私政策模型
+model PrivacyPolicy {
+  id         BigInt    @id @default(autoincrement()) // 主键ID
+  siteId     BigInt    @map("site_id") // 所属站点ID
+  content    String    @db.Text // 政策内容
+  version    Int       @default(1) // 版本号
+  isCurrent  Boolean   @default(false) @map("is_current") // 是否为当前版本
+  createBy   String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy   String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@map("privacy_policy")
+}
+
+// 法律政策模型
+model LegalPolicy {
+  id         BigInt    @id @default(autoincrement()) // 主键ID
+  siteId     BigInt    @map("site_id") // 所属站点ID
+  content    String    @db.Text // 政策内容
+  version    Int       @default(1) // 版本号
+  isCurrent  Boolean   @default(false) @map("is_current") // 是否为当前版本
+  createBy   String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy   String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@map("legal_policy")
+}
+
+model RateLimitLog {
+  id         Int      @id @default(autoincrement())
+  ip         String // IP地址
+  key        String // 限流键名
+  current    Int // 当前请求次数
+  limit      Int // 限制次数
+  ttl        Int // 时间窗口(秒)
+  path       String // 请求路径
+  method     String // 请求方法
+  body       String   @db.Text // 请求方法
+  createTime DateTime @default(now())
+
+  @@index([ip])
+  @@index([key])
+  @@map("rate_limit_log")
+}
+
+// 字典类型
+model DictionaryType {
+  id          BigInt    @id @default(autoincrement()) // 字典类型ID
+  siteId      BigInt    @map("site_id") // 站点ID
+  dictType    String    @db.VarChar(100) // 字典类型编码
+  description String?   @db.VarChar(255) // 字典类型描述
+  systemFlag  Int?      @default(0) @map("system_flag") // 系统标识(0:业务字典 1:系统字典)
+  remarks     String?   @db.VarChar(500) // 备注
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site  Site             @relation(fields: [siteId], references: [id])
+  items DictionaryItem[]
+
+  @@unique([siteId, dictType])
+  @@index([siteId])
+  @@map("dictionary_type")
+}
+
+// 字典项
+model DictionaryItem {
+  id          BigInt    @id @default(autoincrement()) // 字典项ID
+  dictId      BigInt    @map("dict_id") // 字典类型ID
+  label       String    @db.VarChar(100) // 字典标签
+  value       String    @db.VarChar(100) // 字典值
+  dictType    String    @db.VarChar(100) // 字典类型编码
+  description String?   @db.VarChar(255) // 字典项描述
+  sortOrder   Int       @default(0) @map("sort_order") // 排序号
+  remarks     String?   @db.VarChar(500) // 备注
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  dictTypeRef DictionaryType @relation(fields: [dictId], references: [id])
+
+  @@index([dictId])
+  @@index([dictType])
+  @@map("dictionary_item")
+}
+
+enum ContactUsType {
+  BUSINESS
+  BUSINESS_DEALER
+  BUSINESS_CORPORATE_FLEET
+  BUSINESS_SUPPLY_TECH
+  BUSINESS_BRAND
+  PURCHASE_INTENTION
+  SERVICE_SUPPORT
+  WEBSITE_BUILDING
+  TEST_DRIVE
+}
+
+// 联系我们
+model ContactUs {
+  id                   BigInt        @id @default(autoincrement()) // ID
+  siteId               BigInt        @map("site_id") // 站点ID
+  type                 ContactUsType // 类型(business:商务合作 purchase_intention:购车意向)
+  emailId              BigInt?       @map("email_id") // 邮件ID
+  country              String?       @db.VarChar(100) // 国家
+  name                 String?       @db.VarChar(100) // 姓名
+  phone                String?       @db.VarChar(50) // 电话
+  email                String?       @db.VarChar(100) // 邮箱
+  dealer               String?       @db.VarChar(100) // 经销商门店
+  region               String?       @db.VarChar(100) // 区域
+  annualSalesVolume    String?       @map("annual_sales_volume") @db.VarChar(100) // 年销量
+  expectedPurchaseDate String?       @map("expected_purchase_date") @db.VarChar(100) // 预期购买日期
+  postalCode           String?       @map("postal_code") @db.VarChar(20) // 邮政编码
+  city                 String?       @db.VarChar(100) // 城市
+  crmCityCode          String?       @map("crm_city_code") @db.VarChar(50) // CRM城市代码
+  message              String?       @db.Text // 留言内容
+  vehicleType          String?       @map("vehicle_type") @db.VarChar(100) // 车型
+  vehicleVin           String?       @map("vehicle_vin") @db.VarChar(100) // 车架号
+  carColor             String?       @map("car_color") @db.VarChar(50) // 车辆颜色(仅在TEST_DRIVE类型时使用)
+  testDriveTime        String?       @map("test_drive_time") @db.VarChar(100) // 预约试驾时间
+  createTime           DateTime      @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateTime           DateTime?     @map("update_time") @db.DateTime(0) // 更新时间
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@index([type])
+  @@index([createTime])
+  @@map("contact_us")
+}
+
+// 素材管理模型
+model Media {
+  id          String    @id @default(cuid()) // 素材ID,使用cuid
+  siteId      BigInt    @map("site_id") // 所属站点ID
+  name        String    @db.VarChar(255) // 原始文件名
+  url         String    @db.VarChar(255) // OBS存储URL
+  description String?   @db.Text // 素材描述
+  directory   String?   @db.VarChar(255) // 目录
+  size        Int       @default(0) // 文件大小(字节)
+  mimeType    String    @db.VarChar(100) // MIME类型
+  createBy    String    @default("admin") @map("create_by") @db.VarChar(50) // 创建者
+  createTime  DateTime  @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+  updateBy    String?   @map("update_by") @db.VarChar(50) // 更新者
+  updateTime  DateTime? @map("update_time") @db.DateTime(0) // 更新时间
+
+  site Site @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@index([mimeType])
+  @@map("media")
+}
+
+// 接口日志记录表
+model ApiLog {
+  id           BigInt   @id @default(autoincrement()) // 日志ID,自增主键
+  siteId       BigInt?  @map("site_id") // 站点ID
+  userId       BigInt?  @map("user_id") // 用户ID
+  method       String   @db.VarChar(10) // HTTP方法(GET,POST,PUT,DELETE等)
+  path         String   @db.VarChar(500) // 请求路径
+  query        String?  @db.Text // 查询参数
+  headers      String?  @db.Text // 请求头信息
+  requestBody  String?  @map("request_body") @db.Text // 请求体数据
+  statusCode   Int // HTTP状态码
+  clientIp     String?  @map("client_ip") @db.VarChar(50) // 客户端IP地址
+  userAgent    String?  @map("user_agent") @db.VarChar(500) // 用户代理
+  responseTime Int      @map("response_time") // 响应时间(毫秒)
+  errorMessage String?  @map("error_message") @db.Text // 错误信息
+  createTime   DateTime @default(now()) @map("create_time") @db.DateTime(0) // 创建时间
+
+  // Relations
+  site Site? @relation(fields: [siteId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([siteId])
+  @@index([userId])
+  @@index([path])
+  @@index([method])
+  @@index([statusCode])
+  @@index([createTime])
+  @@index([responseTime])
+  @@map("api_log")
+}

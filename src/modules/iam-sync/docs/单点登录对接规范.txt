@@ -1,0 +1,570 @@
+
+
+
+
+奇瑞集团统一身份认证平台
+单点登录对接规范
+
+
+
+
+
+一、前言
+此文档为统一身份认证平台作为奇瑞集团项目权威的主数据中心及统一的认证入口，便于其他应用系统使用统一身份认证平台进行身份验证及单点登录集成的规范阐述。
+
+二、术语解释
+（一）统一身份认证
+统一身份认证软件是专注于身份管理与访问控制的系统，主要提供覆盖奇瑞集团权威的组织架构服务、集团人员信息服务及访问集团应用系统的认证服务。
+相关术语：
+术语	英文描述	术语说明	简称
+统一身份认证管理平台	Indentity and Access Management	实现各目标应用系统的账号信息统一供应、统一存储、统一管理和统一认证及审计管理等功能。	IAM
+统一身份管理	Bamboocloud Identity Management	统一身份管理平台	BIM
+目标应用系统	Target System	接入统一身份认证管理平台的目标业务应用，通过接入实现账号的集中创建与删除，并在此基础上实现统一认证。	应用
+统一用户	User	在IAM系统组与内部人员（自然人）一一对应的IT标识，用于人员访问信息系统的统一账号；	用户
+应用账号/
+目标账号	Account	目标应用系统内部使用的账号，用于用户应用系统，并在系统中完成相关业务操作	账号
+
+（二）OAuth 2.0认证协议
+OAuth 2.0 是行业标准的授权协议。 OAuth 2.0 专注于简化开发人员在为Web 应用程序、桌面应用程序以及移动端应用程序提供特定授权时的流程。该规范及其扩展由IETF OAuth工作组开发。
+
+三、如何接入
+（一）集成说明
+应用系统集成IAM共分为两部分：身份认证以及数据同步集成，其中身份认证集成支持OAuth、Restful两种标准协议，为支持采用APP扫码登录，B/S架构应用系统均采用OAuth认证方式进行对接
+统一身份认证平台当前测试环境为：
+访问地址	iamuat.mychery.com
+访问端口	5443
+
+（二）集成应用注册
+应用系统调用接口需要先联系平台管理员进行应用注册，注册成功后，统一身份认证平台颁发调用接口的参数后才有权限调用接口。不同认证集成方式参数不同。
+认证方式	接口调用参数	备注
+OAuth2	
+client_id：应用ID
+client_secret：应用密钥
+redirect_url：应用访问地址
+callback_url：应用退出地址	集成退出功能，需要提供正确的应用退出地址
+Restful	client_id：应用ID
+callback_url：应用退出地址
+
+（三）Oauth集成流程
+OAuth2是一个开放标准，允许用户授权第三方应用访问他们存储在另外的服务提供者上的信息，而不需要将用户名和密码提供给第三方应用或分享他们数据的所有内容。
+
+1)第三方应用平台新开一个页面用于集成统一身份认证OAuth接口；
+2)用户访问新开入口时，第三方应用系统向IAM发起授权登录请求，IAM将携带授权码参数，重定向到第三方应用系统；
+3)第三方应用平台根据授权码调用获取令牌接口换取授权令牌；
+4)第三方应用平台根据授权令牌调用获取用户信息接口，获取用户信息；
+5)第三方应用平台获取到用户信息后判断用户是否可以进入系统。
+
+（四）Restful集成流程
+统一认证服务的REST提供了认证接口、验证令牌有效性接口和获取用户信息接口，同时为了实现单点登录，提供了2个认证辅助接口, 用于认证中心的票据获取和设置。应用可以根据这5个接口，编写应用的访问控制逻辑，实现SSO和访问控制。
+由于http(s) URL自身限制，无论REST接口还是认证辅助接口，传入的参数值如果包含例如”%”、”&”、” ”、”=”等特殊字符或中文时，需要先作URL编码（URL encode）。推荐所有参数值先都作URL编码再调用接口传入。
+
+流程介绍：上图是第三方系统通过restful接口和认证中心集成的流程，打开第三方系统登录页面，输入用户名密码，调用接口规范里面的认证接口，获取凭证，第二步验证凭证对应接口规范里面的验证票据接口，第三步通过IDP写入单点票据对应接口规范里面的设置票据接口，在票据写入浏览器，第四步获取用户信息对应接口规范里面的获取用户信息接口。
+
+四、OAuth认证接口规范
+（一）授权接口
+此接口是通过浏览器重定向跳转方式进行调用，通过调用此接口可以获得一次性授权码。
+如果用户已完成过登录，访问此地址则会直接跳转到指定的回调地址，回调地址中包含一次性授权码code。如果请求参数中传入了state，则回调地址中会带上原始的state值。
+如果用户未登录，访问此地址会跳转至登录页面，显示应用配置的认证方式，用户完成登录后跳转到指定的回调地址，回调地址参数和已登录状态一致。
+接口名	authorize
+URL Path	http(s)://{host}:{port}/idp/oauth2/authorize
+请求类型	GET
+请求示例	https://iamuat.mychery.com:5443/idp/oauth2/authorize?client_id=testapp&redirect_uri=https://www.baidu.com&response_type=code&state=123456
+参数	参数名	中文说明	描述
+	client_id	应用标识	客户端应用注册ID(IAM提供)
+	redirect_uri	跳转地址	传入的参数值如果包含例如”%”、”&”、” ”、”=”等特殊字符或中文时，需要先作URL编码（URL encode），为满足访问任何链接认证后跳转到相应地址需要自主抓取浏览器访问地址拼接在此参数里
+	response_type	响应类型	code
+	state	任意值	用于保持请求和回调的状态，在回调时，会在Query Parameter中回传该参数。开发者可以用这个参数验证请求有效性，也可以记录用户请求授权页前的位置。这个参数可用于防止跨站请求伪造（CSRF）攻击
+处理逻辑	判断参数
+验证client_id是否有效
+校验redirect_uri，BAM-CONSOLE中可填写多URL（以”;”分隔），判断参数中的URL是否以BAM-CONSOLE中填写的URL开头（此功能可选择是否启用）
+显示认证授权页面。
+验证身份后页面跳转至redirect_uri并附有参数授权码
+返回值	参数正确登录成功时，会跳转到回调地址：
+以上文中的回调地址为例，完成后会跳转至https://www.baidu.com?code=ae1838f40638e218bc90a92df3091793&state=123456，携带参数code和state。
+描述	此接口是浏览器redirect跳转方式调用。
+如果用户已完成过登录，访问此地址则会直接跳转到指定的回调地址，带上code。如果请求参数中传入了state，这里会带上原始的state值。
+如果用户未登录，访问此地址会跳转至登录页面，显示应用配置的认证方式，用户完成登录后跳转到指定的回调地址，带上code。如果请求参数中传入了state，这里会带上原始的state值。
+代码示例	//bam的服务器地址
+String amUrl = "https://iamuat.mychery.com:5443";
+//应用注册的唯一标识
+String clientId = "testapp";
+//应用回调地址（应用主页）
+String redirectURI = "redirect_uri=https://www.baidu.com";
+String url = amUrl+"/idp/oauth2/authorize?client_id="+clientId
++"&redirect_uri="+redirectURI+"&response_type=code&state=123456";
+response.sendRedirect(url);
+
+
+（二）获取令牌
+获取令牌接口可以使用一次性授权码换取授权令牌。获得授权令牌的同时还可以得到刷新令牌以及令牌有效期等信息。
+接口返回以下信息：
+access_token是访问令牌，用于获取用户信息；
+expires_in是过期时间，表明授权令牌的有效时长，时长在应用注册时可配置；
+refresh_token是刷新令牌，可在授权令牌到期后进行刷新续期；
+uid是用户ID。
+接口名	getToken
+URL Path	http(s)://{host}:{port}/idp/oauth2/getToken
+请求类型	POST
+请求参数示例	https://iamuat.mychery.com:5443/idp/oauth2/getToken?client_id=testapp&grant_type=authorization_code&code=71ce5537e8fea8592bdafda11bbcf6c6&client_secret=835f1867bcc34de8b29330d3d4be1f95
+参数	参数名	中文说明	描述
+	client_id	应用标识	客户端应用注册ID(IAM提供)
+	client_secret	密钥	客户端应用注册密钥(IAM提供)
+	code	授权码	调用authorize接口获得的授权码code
+	grant_type	认证方式	请求类型，默认authorization_code
+处理逻辑	验证参数有效性
+验证授权码有效性及范围
+根据以上判断、验证及认证结果返回JSON数据
+返回值	类型：JSON
+正确返回时：
+{
+"access_token":"0b5b3bbec449227b96462c8111f3b15f",
+"expires_in":"300",
+"refresh_token":"25a803418420edb8177561df913e8bfa",
+"uid":"20230207100659809-156B-A739EBADE"
+}
+
+描述	OAuth获取授权Token接口可以获得access_token、expires_in、refresh_token、uid。
+access_token用于获取用户信息，expires_in是access_token有效时长，时长在console应用注册时配置。
+refresh_token可在access_token到期后进行刷新续期，uid为认证平台的用户id。
+代码示例	//应用注册的唯一标识
+String clientId = "testapp";
+//上一步返回的code参数
+String code = request.getParameter("code");
+//应用注册后为应用分配的唯一安全码
+String clientSecret = "835f1867bcc34de8b29330d3d4be1f95";
+//bam的服务器地址
+String amUrl="https://iamuat.mychery.com:5443";
+String getTokenUrl=amUrl+"/idp/oauth2/getToken?client_id="+clientId+"&grant_type=authorization_code&code="+code+"&client_secret="+clientSecret;
+httpClient client = new httpClient();
+httpPost httpPost = new httpPost(getTokenUrl)
+JSONObject json=JSONObject.fromObject(client.execute(httpPost));
+//取token
+if (json.get("access_token") != null) {
+String token = json.getString("access_token");
+}
+
+
+（三）刷新令牌
+刷新令牌接口可以对授权令牌做续期操作，刷新后的授权令牌将重置有效时长。
+接口返回信息与获取令牌一致。
+接口名	refreshToken
+URL Path	http(s)://{host}:{port}/idp/oauth2/refreshToken
+请求类型	POST
+请求参数示例	https://iamuat.mychery.com:5443/idp/oauth2/refreshToken?client_id=testapp&grant_type=refresh_token&client_secret=835f1867bcc34de8b29330d3d4be1f95&refresh_token=25a803418420edb8177561df913e8bfa
+参数
+	参数名	中文说明	描述
+	client_id	应用标识	客户端应用注册ID
+	client_secret	密钥	客户端应用注册密钥
+	refresh_token	刷新令牌	刷新token授权码
+	grant_type	认证方式	请求类型，默认refresh_token
+处理逻辑	验证参数有效性
+刷新续期业务逻辑操作
+根据以上判断、验证及认证结果返回JSON数据
+返回值	类型：JSON
+正确返回时：
+{
+  "access_token": "07111c4e2d536759326f281a8f363937",
+  "refresh_token": "e8e2bef0da609fd13b086415e77e3638",
+  "uid": "20171123092851812-3272-F82D3EAC0",
+  "expires_in": 43200
+}
+
+描述	刷新Token接口可以对授权access_token有效期做续期操作
+代码示例	//应用注册的唯一标识
+String clientId = "testapp";
+//上一步返回的code参数
+String refresh_token = request.getParameter("refresh_token");
+//应用注册后为应用分配的唯一安全码
+String clientSecret = "835f1867bcc34de8b29330d3d4be1f95";
+//bam的服务器地址
+String amUrl="https://iamuat.mychery.com:5443";
+String refreshTokenUrl = amUrl+"/idp/oauth2/refreshToken?client_id="+clientId
+	+"&grant_type=refresh_token&client_secret="+clientSecret+"refresh_token="+refresh_token;
+httpClient client = new httpClient();
+httpPost httpPost = new httpPost(refreshTokenUrl)
+JSONObject json=JSONObject.fromObject(client.execute(httpPost));
+//取token
+if (json.get("access_token") != null) {
+String token = json.getString("access_token");
+}
+
+
+（四）获取用户信息
+获取用户信息接口可以通过授权令牌获得当前登录用户的用户信息。
+接口返回以下信息：
+employeeNumber对应登录的工号
+spRoleList对应集成的应用系统账号(应用账号与用户名不一致或多账号时使用)
+Mail 邮箱
+displayName 姓名
+Uid 统一身份认证人员系统随机生成ID
+identityNumber 身份证号
+loginName 飞书User_id
+orgNumber 所在组织code
+orgNamePath 组织名称全路径
+Mobile 手机号
+orgCodePath 组织code全路径
+接口名	getUserInfo
+URL Path	http(s)://{host}:{port}/idp/oauth2/getUserInfo
+请求类型	GET
+请求示例	https://iamuat.mychery.com:5443/idp/oauth2/getUserInfo?client_id=testapp&access_token=0b5b3bbec449227b96462c8111f3b15f
+参数
+	参数名	中文说明	描述
+	access_token	访问令牌	token授权码
+	client_id	应用标识	客户端应用注册ID(IAM提供)
+处理逻辑	验证参数有效性
+根据应用配置的属性权限列表，查询用户信息返回
+根据以上判断、验证及认证结果返回JSON数据
+返回值	类型：JSON
+正确返回时：
+{
+    "mail": "123AAA@163.com",
+    "displayName": "张三",
+    "employeeNumber": "P004025",
+    "spRoleList": [admin],
+    "uid": "11111111asdadsaczxczx",
+    "identityNumber": null,
+    "loginName": "P004025",
+    "orgNumber": "M100110031016100110021001",
+"orgNamePath": "/奇瑞/奇瑞汽车股份有限公司/芜湖埃科泰克动力总成有限公司/制造部/发动机三车间/设备保全/",
+    "mobile": "13600000000",
+    "orgCodePath": "/M1001/M10011003/M100110031016/M1001100310161001/M10011003101610011002/M100110031016100110021001/"
+}
+
+描述	employeeNumber对应登录的工号
+spRoleList对应集成的应用系统账号(应用账号与用户名不一致或多账号时使用)
+Mail 邮箱
+displayName 姓名
+Uid 统一身份认证人员系统随机生成ID
+identityNumber 身份证号
+loginName 飞书User_id
+orgNumber 所在组织code
+orgNamePath 组织名称全路径
+Mobile 手机号
+orgCodePath 组织code全路径
+代码示例	//应用注册的唯一标识
+String clientId = "testapp";
+//bam的服务器地址
+String amUrl = "https://iamuat.mychery.com:5443";
+//基于token获取用户信息
+String getUserUrl= amUrl+"/idp/oauth2/getUserInfo?client_id="+clientId+"&access_token="+token;
+httpClient client = new httpClient();
+httpPost httpPost = new httpPost(getUserUrl)
+JSONObject json=JSONObject.fromObject(client.execute(httpPost));
+JSONArray sprolelist = json.getJSONArray("spRoleList");
+//解析用户信息获取应用系统登录名
+if (sprolelist != null && sprolelist.size()>0) {
+//账号登录
+String loginname = sprolelist.get(0);
+} else{
+//账号名为空或未进行匹配时，可直接取工号
+String loginname = json.getString("employeeNumber");
+}
+
+
+（五）登出接口
+此接口需要清除当前浏览器存在的用户会话信息，因此需要前端使用此接口跳转，例如jsp直接跳转或ajax调用等，后台http client方式会存在问题
+接口名	logout
+URL Path	http(s)://{host}:{port}/idp/profile/OAUTH2/Redirect/GLO
+请求类型	GET
+请求示例	https:/iamuat.mychery.com:5443/idp/profile/OAUTH2/Redirect/GLO?entityId=testapp&redirctToUrl=https://www.baidu.com&redirectToLogin=true
+注意事项	此接口需要清除当前浏览器存在的用户会话信息，因此需要前端使用此接口跳转，例如jsp直接跳转或ajax调用等，后台httpclient方式会存在问题
+
+（六）错误码
+序号	错误代码	错误说明
+1	1001	缺少参数client_id
+2	1009	缺少参数code
+3	1010	缺少参数grant_type
+4	1008	缺少参数client_secret
+5	1005	参数code非法
+6	1024	refresh_token值不能为空
+7	1025	参数refresh_token不正确或者过期
+8	2001	缺少参数access_token
+9	2002	参数access_token不正确或者过期
+五、Restful认证接口规范
+（一）认证接口
+接口名	authenticate
+URL Path	http(s)://{host}:{port}/ idp/restful/IDPAuthenticate
+请求类型	GET、POST
+请求示例	https://iamuat.mychery.com:5443/idp/restful/IDPAuthenticate?appId=xxx&userName=xxx&password=xxx&authnMethod=xxx&remoteIp=
+参数	参数名	中文说明	描述
+	appId	应用标识	客户端应用注册ID
+	userName	用户名	用户登录名
+	password	密码	当采用用户名+密码认证时，传入密码
+当采用用户名+短信认证时，此参数被忽略
+	checkcode	短信验证码	当采用用户名+密码认证时，此参数被忽略
+当采用用户名+短信认证时，传入短信验证码。短信验证码需要先通过“发送短信验证码”接口发到用户手机上。
+	remoteIp	客户端IP
+	authnMethod	认证方式	当采用用户名+密码认证时，传入UsernamePassword或不传
+当采用用户名+短信验证码认证时，传入UsernameSM
+处理逻辑	判断参数
+验证appId是否有效
+调用IDP认证接口
+根据以上判断、验证及认证结果返回JSON数据
+返回值	用户密码认证通过时：
+[
+{
+"data": {
+"tokenId": "MTkyLjE2OC4xMjguMQ==|NzI4Nzg5OWNiNDM0ZWRjMTMwMWM0Y2NjNDIzNzk3NjQ4MzRkNmVhODk4Y2MxMWZiMTY3MjZhOTM2ZmFmZGVhNA==|Qgai5XhdPTYWf9GbWfynyIySczY="
+},
+"message": null
+}
+]
+
+
+（二）验证票据
+接口名	isTokenValid
+URL Path	http(s)://{host}:{port}/ idp/restful/isIDPTokenValid
+请求类型	POST、GET
+请求参数示例	https://iamuat.mychery.com:5443/ idp/restful/isIDPTokenValid?appId=xxx&tokenId=xxx&remoteIp
+参数	参数名	中文说明	描述
+	appId	应用标识	客户端应用注册ID
+	tokenId	用户票据
+	remoteIp	客户端IP
+处理逻辑	判断参数
+验证appId是否有效
+验证tokenId是否有效
+根据以上判断、验证结果返回JSON数据
+返回值	类型：JSON
+正确返回时：
+[
+{
+"data": {
+"isValid": true
+},
+"message": null
+}
+]
+
+
+（三）获取用户信息
+接口名	GetUserAttributes
+URL Path	http(s)://{host}:{port}/idp/ idp/restful/getIDPUserAttributes
+请求类型	POST、GET
+请求参数示例	https://iamuat.mychery.com:5443/idp/restful/getIDPUserAttributes?appId=xxx&tokenId=xxx&remoteIp=&attributeNames=xxxx
+参数
+	参数名	中文说明	描述
+	appId	应用标识	客户端应用注册ID(IAM提供)
+	tokenId	用户票据
+	remoteIp	客户端IP
+	attributeNames	属性名	逗号分割字符串: “spOrgCodePath,sn,givenName,uid”
+该参数没有时使用IDP默认的用户属性
+处理逻辑	判断参数
+验证appId是否有效
+验证tokenId是否有效
+获取用户信息
+根据以上判断及结果返回JSON数据
+返回值	类型：JSON
+正确返回时：
+[
+{
+"data": {
+"tokenId": "MTkyLjE2OC4xMjguMQ==|ODZlNTY2MzY5MWU4ZTkxYmZmNzEwMjVlNmFhNDdiMWMzYzZkMmQ3MjVmMTY3NzA5YTQxNDY0Y2ZhMjNhODgwZQ==|1m0nP3K952xf2r+xkj8bXpvXdw8=",
+"attributes": {
+	    "uid": [
+				"dingkx"
+			],
+		"sn": [
+				"丁"
+			],
+		"givenName": [
+				"新星"
+			],
+		"spOrgCodePath": [
+				"/10010000/10010001/30200000/30200018/30204583/"
+			]
+		}
+},
+"message": null
+}
+]
+
+
+（四）获取票据
+接口名	getToken
+URL Path	http(s)://{host}:{port}/ idp/restful/getIDPToken
+请求类型	POST、GET
+请求参数示例	https://iamuat.mychery.com:5443/idp/restful/getIDPToken?appId=xxx&jsonpCallback=&remoteIp=
+参数	参数名	中文说明	描述
+	appId	应用标识	客户端应用注册ID
+	jsonpCallback	回调函数	Jsonp回调函数
+	remoteIp	客户端IP
+处理逻辑	判断参数
+验证appId
+获取浏览器中的SSO Cookie
+验证token
+根据SSO Cookie存在情况跳转到app并附加参数
+返回值	tokenId:
+用户票据
+返回URL	有cookie时:
+{"data":{"isValid":true,"tokenid":"MTI3LjAuMC4x|MDE4ZTI1ODM3ZjRjNmQxNzk3NzExNzA4MGVmMjIzZDgzZTU3NzU3NjAxMDEwMGU1NTM1ZTljYWUxNjE0OGQyNw==|mnY4Qafcdz9hc2gdGv2DSq1tYEo="}}
+没有cookie时:
+appId
+参数错误或异常时不跳转且页面显示”invalid_appId_error”等错误信息
+
+（五）设置票据
+接口名	setToken
+URL Path	http(s)://{host}:{port}/ idp/restful/setIDPCookie
+请求类型	POST、GET
+请求参数示例	https://iamuat.mychery.com:5443/idp/restful/setIDPCookie?appId=xxx&tokenId=xxx&jsonpCallback=& remoteIp=xxxx
+参数	参数名	中文说明	描述
+	appId	应用标识	客户端应用注册ID(OneAccess提供)
+	tokenId	用户票据
+	jsonpCallback	回掉函数	Jsonp回调函数
+	remoteIp	客户端IP
+处理逻辑	判断参数
+验证appId
+验证tokenId
+往浏览器中写入SSO Cookie
+返回app
+返回值	无
+返回URL	appId
+参数错误或异常时不跳转且页面显示”invalid_appId_error”、”wrong_tokenId”等错误信息
+
+（六）登出接口
+接口名	GLO
+请求类型	POST、GET
+请求示例	https://iamuat.mychery.com:5443/idp/profile/OAUTH2/Redirect/GLO?redirctToUrl=http(s)://XXXX&redirectToLogin=true&entityId=20170830061623854-E5A8-B2FABDC35
+参数	参数名	中文说明	描述
+	redirctToUrl	回跳url	应用的登录地址
+注:url必须为一个完整有效的地址
+	redirectToLogin	true	是否直接跳转至应用redirctToUrl，true为跳转至redirctToUrl，false为停留在idp退出展示页面
+	entityId	应用ID
+处理逻辑	判断参数
+根据以上判断、验证及认证结果返回JSON数据
+返回值
+注意事项	此接口需要清除当前浏览器存在的用户会话信息，因此需要前端使用此接口跳转，例如jsp直接跳转或ajax调用等，后台http(s)client方式会存在问题
+
+（七）错误码
+序号	错误代码	错误说明
+1	Parameters_missing	参数为空或缺失时
+2	invalid_appId	appid错误
+3	001	userName，password错误，被删除的用户（用户名密码）
+4	002	用户密码已过期
+5	003	用户被禁用
+6	004	用户被锁定
+六、如何调用
+（一）接口校验
+调用接口时需经过校验，校验通过后方才返回数据，校验包括：
+域名验证：接口调用必须通过域名访问，部分场景下无法通过IP地址直接访问。
+参数验证：参数验证主要基于应用系统在平台中的注册信息以及密钥。
+-client_id：必须是在平台中注册过的应用，使用应用注册时填写的应用标识访问。
+-client_secret：必须是应用在平台注册完成后自动生成的应用密钥，需要和应用标识相对应。
+-访问地址：在进行OAuth认证时，拼接的URL中，回调地址必须与应用在平台注册时填写的访问地址一致，否则平台将拒绝登录。
+
+（二）调用样例
+1.OAuth接口
+（1）授权接口
+访问方式：通过浏览器访问
+访问地址：
+https://iamuat.mychery.com:5443/idp/oauth2/authorize?client_id=testapp$redirect_uri=https://www.baidu.com&response_type=code&state=123456
+返回结果：跳转到
+https://www.baidu.com/?code=bad57a54e9758c6f500f85c955fb5bd7&state=1
+其中bad57a54e9758c6f500f85c955fb5bd7是本次调用获得的一次性授权码
+（2）获取令牌
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/oauth2/getToken?client_id=testapp&grant_type=authorization_code&code=bad57a54e9758c6f500f85c955fb5bd7&client_secret=835f1867bcc34de8b29330d3d4be1f95
+返回结果：
+{
+    "access_token": "9b66192f47a585c75300936ec6a74a73",
+    "refresh_token": "26bf27867e546e4e9e743fc089beb57b",
+    "uid": "20220312165539399-99BE-F52E19957",
+    "expires_in": 7200
+}
+（3）刷新令牌
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/oauth2/refreshToken?client_id=testapp&grant_type=refresh_token&client_secret=835f1867bcc34de8b29330d3d4be1f95&refresh_token=26bf27867e546e4e9e743fc089beb57b
+返回结果：
+{
+    "access_token": "eb571e603e88eba2198434b67ae444b2",
+    "refresh_token": "1383dc7835d29db7ee47e272bc6cd3df",
+    "uid": "20220312165539399-99BE-F52E19957",
+    "expires_in": 7200
+}
+（4）获取用户信息
+访问方式：GET请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/oauth2/getUserInfo?client_id=testapp&access_token= eb571e603e88eba2198434b67ae444b2
+返回结果：
+{
+    "loginName": "test",
+    "spRoleList": []
+}
+（5）登出接口
+访问方式：通过浏览器访问
+访问地址：
+https://iamuat.mychery.com:5443/idp/profile/OAUTH2/Redirect/GLO?entityId=testapp&redirctToUrl=http(s)://www.baidu.com&redirectToLogin=true
+返回结果：无
+2.Restful接口
+（1）认证接口
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/restful/IDPAuthenticate?appId=testrestful&userName=panda&password=vokdwfQflTgxfMS3mGQpjmx8gpZ1xzAs&remoteIp=127.0.0.1&authnMethod=UsernamePassword
+返回值：
+{
+    "data": {
+        "tokenId": "spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2"
+    }
+}
+（2）验证票据
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/restful/isIDPTokenValid?appId=testrestful&tokenId=spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2&remoteIp=127.0.0.1
+返回值：
+{
+    "data": {
+        "isValid": true
+    }
+}
+（3）获取用户信息
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/restful/getIDPUserAttributes?appId=testrestful&tokenId=spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2&remoteIp=127.0.0.1
+返回值：
+{
+    "data": {
+        "tokenId": "spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2",
+        "attributes": {
+            "changepwdat": "2022-06-11 16:45:39.0",
+            "mail": "panda@bamboocloud.com",
+            "loginName": "panda",
+            "displayname": "初始化管理员",
+            "mobile": " 13812669922"
+        }
+    }
+}
+（4）设置票据
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/restful/setIDPCookie?appId=testrestful&tokenId=spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2&jsonpCallback=x&remoteIp=127.0.0.1
+返回值：
+x({
+    "data": {
+        "setCookie": true
+    }
+})
+（5）读取票据
+访问方式：POST请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/restful/getIDPToken?appId=testrestful&jsonpCallback=&remoteIp=127.0.0.1
+返回值：
+{
+    "data": {
+        "tokenid": "spSession_testrestful-1db9e4c85e05407b9dbb674d71fc6a74-4yu769978ada47fc94bd72f2f0df0af2",
+        "isValid": true
+    }
+}
+（6）登出接口
+访问方式：GET请求
+访问地址：
+https://iamuat.mychery.com:5443/idp/profile/OAUTH2/Redirect/GLO?redirectToUrl=http(s)://www.baidu.com&redirectToLogin=true&entityId=appHub
+返回值：无
+
+（三）演示用例说明
+附件中的演示用例是使用Postman调用的接口实例。
+使用时请先将演示用例导入Postman中，设置环境变量host为iamuat.mychery.com或将用例中所有{{host}}手动替换为iamuat.mychery.com。
+OAuth接口用例使用时，需先将“授权接口”的完整URL复制到浏览器中访问，在浏览器中完成登录后，在地址栏中复制出“code=”之后，“&state=”之前的内容，粘贴到“获取令牌”接口的code参数中之后，调用获取令牌接口。正确获取到令牌后，该令牌会保存在变量中，其他接口可在令牌有效期内直接调用。登出接口需要复制完整的URL到浏览器中访问。
+
+七、附件
+（一）单点登录对接演示

@@ -1,0 +1,645 @@
+
+
+
+
+奇瑞集团-统一身份认证平台
+用户对接规范
+
+
+
+目录
+用户对接规范	1
+1. 前言	1
+2. 术语解释	1
+3. 机构属性（需详细沟通）	2
+4. 人员属性（需详细沟通）	2
+5. 接口规范	3
+5.1. 接口列表	3
+5.2. 安全性说明	3
+5.2.1. 接口协议	3
+5.2.2. 用户认证	3
+5.2.3. 报文加密	4
+5.2.4. 签名验证	4
+5.3. SchemaService接口	4
+5.3.1. 功能说明	4
+5.3.2. 请求报文说明	5
+5.3.3. 响应报文说明	6
+6. 用户管理接口	7
+6.1. UserCreateService接口	7
+6.1.1. 功能说明	7
+6.1.2. 请求报文说明	7
+6.1.3. 响应报文说明	8
+6.2. UserUpdateService接口	9
+6.2.1. 功能说明	9
+6.2.2. 请求报文说明	9
+6.2.3. 响应报文说明	10
+6.3. UserDeleteService接口	11
+6.3.1. 功能说明	11
+6.3.2. 请求报文说明	11
+6.3.3. 响应报文说明	12
+6.4. QueryAllUserIdsService接口	13
+6.4.1. 功能说明	13
+6.4.2. 请求报文说明	13
+6.4.3. 响应报文说明	13
+6.5. QueryUserByIdService接口	14
+6.5.1. 功能说明	14
+6.5.2. 请求报文说明	15
+6.5.3. 响应报文说明	15
+7. 机构管理接口	16
+7.1. OrgCreateService接口	16
+7.1.1. 功能说明	16
+7.1.2. 请求报文说明	17
+7.1.3. 响应报文说明	17
+7.2. OrgUpdateService接口	18
+7.2.1. 功能说明	18
+7.2.2. 请求报文说明	18
+7.2.3. 响应报文说明	19
+7.3. OrgDeleteService接口	20
+7.3.1. 功能说明	20
+7.3.2. 请求报文说明	20
+7.3.3. 响应报文说明	21
+7.4. QueryAllOrgIdsService接口	22
+7.4.1. 功能说明	22
+7.4.2. 请求报文说明	22
+7.4.3. 响应报文说明	23
+7.5. QueryOrgByIdService接口	24
+7.5.1. 功能说明	24
+7.5.2. BIM请求报文说明	24
+7.5.3. 响应报文说明	24
+8. 如何接入	26
+9. 如何调用	27
+10. 附件	28
+10.1. 用户同步对接演示	28
+
+
+
+1.前言
+本文档为统一身份认证平台作为奇瑞集团项目权威的主数据中心及统一的认证入口，便于其他应用系统与统一身份认证平台进行用户同步的规范阐述。
+
+2.术语解释
+统一身份认证系统是专注于身份管理与访问控制的系统，主要提供覆盖奇瑞集团的组织架构服务、人员信息服务及访问应用系统的认证服务。
+相关术语：
+术语	英文描述	术语说明	简称
+统一身份认证管理平台	Indentity and Access Management	实现各目标应用系统的账号信息统一供应、统一存储、统一管理和统一认证及审计管理等功能。	IAM
+统一身份管理	Bamboocloud Identity Management	统一身份管理平台。	BIM
+目标应用系统	Target System	接入统一身份认证管理平台的目标业务应用，通过接入实现账号的集中创建与删除，并在此基础上实现统一认证。	应用
+统一用户	User	在IAM系统组与内部人员（自然人）一一对应的IT标识，用于人员访问信息系统的统一账号。	用户
+应用账号/
+目标账号	Account	目标应用系统内部使用的账号，用于用户应用系统，并在系统中完成相关业务操作。	账号
+
+3.机构属性（需详细沟通）
+本表仅用于展示奇瑞集团统一身份认证平台中所保存的数据模型，所列的属性是统一身份认证平台中使用的属性字段，第三方应用可以拥有完全不同的属性字段。
+字段代码	字段名称	字段说明
+code	机构ID 	机构的唯一代码，其他需引用机构时，使用该代码
+name	机构名称	机构的名称
+type	机构类型	机构类型
+parentId	父机构ID	父机构的代码，如果是顶级机构可以留空
+sequence	序号	机构在同级机构中的排序序号，最长9位的数字
+4.人员属性（需详细沟通）
+本表仅用于展示奇瑞集团统一身份认证平台中所保存的数据模型，所列的属性是统一身份认证平台中使用的属性字段，第三方应用可以拥有完全不同的属性字段。
+字段代码	字段名称	字段说明
+fullname	姓名	人员姓名
+gender	性别	人员性别
+birthDate	出生日期	人员的出生日期
+userType	人员类型	人员的类型（三种：行政管理、专业技术、技术工人）
+username	用户名	飞书ID
+employeeNo	工号	人员唯一ID（人员组织变动时可能会变更此ID但一直唯一）
+password	密码	人员用于登录的密码（IAM校验密码一般不传）
+mobile	手机号	人员的手机号
+organizitionId	所在机构	人员所任职务的机构ID，引用机构属性表中的code
+sequence	序号	人员在该任职机构中的排序序号，最长9位的数字
+Enterpriseemail	企业邮箱	奇瑞企业邮箱（不必填）
+ADAccuont	AD域账号	奇瑞AD域账号
+entrytime	入职时间	人员入职时间
+
+5.如何接入
+应用系统集成IAM共分为两部分：身份认证以及数据同步集成，其中应用数据同步采用连接器的方式完成。连接器由统一身份认证平台提供，厂商需实现接口规范章节中指定的接口。
+第三方应用系统接入统一身份认证平台后，根据统一身份认证定义的标准JSON数据格式接口规范与统一身份认证平台做数据交互。接口规范定义了机构、账号等对象增、删、改、查的抽象方法，第三方应用系统根据集成范围做对应的业务实现。
+下文将以账号和组织机构对象做示例。
+统一身份认证平台与第三方集成应用系统同步，数据交互如下图：
+
+统一身份平台通过内置连接器请求第三方集成应用系统的API接口服务，请求调用接口定义的接口方法。
+下游集成应用在UserCreateService、UserUpdateService、UserDeleteService方法体内实现对本应用系统账号数据的增、改、删操作。统一身份认证平台调用对应接口在下游应用中进行应用账号的增、删、改操作。
+下游集成应用在QueryAllUserIdsService、QueryUserByIdService方法体内实现对本应用系统账号数据的查询操作。统一身份认证平台调用对应接口在下游应用中进行应用账号的查询操作。不需要回收下游系统账号的应用无需实现此方法。
+下游集成应用在OrgCreateService、OrgUpdateService、OrgDeleteService方法体内实现对本应用系统组织机构数据的增、改、删操作。统一身份认证平台调用对应接口在下游应用中进行组织机构的增、删、改操作。下游集成应用可以只实现必要的接口，不需要的接口可以不实现。
+下游集成应用在QueryAllOrgIdsService、QueryOrgByIdService方法体内实现对本应用系统组织机构数据的查询操作。统一身份认证平台调用对应接口在下游应用中进行应用组织机构的查询操作。不需要回收下游系统组织机构的应用无需实现此方法。
+6.接口规范
+6.1.接口列表
+接口名	描述	接口地址
+SchemaService	对象属性字段定义	http://{host}:{port}/../SchemaService
+UserCreateService	账号创建	http://{host}:{port}/../UserCreateService
+UserUpdateService	账号修改	http://{host}:{port}/../UserUpdateService
+UserDeleteService	账号删除	http://{host}:{port}/../UserDeleteService
+QueryAllUserIdsService	获取全部人员ID	http://{host}:{port}/../QueryAllUserIdsService
+QueryUserByIdService	根据ID获取信息	http://{host}:{port}/../QueryUserByIdService
+OrgCreateService	组织机构创建	http://{host}:{port}/../OrgCreateService
+OrgUpdateService	组织机构修改	http://{host}:{port}/../OrgUpdateService
+OrgDeleteService	组织机构删除	http://{host}:{port}/../OrgDeleteService
+QueryAllOrgIdsService	获取全部机构ID	http://{host}:{port}/../QueryAllOrgIdsService
+QueryOrgByIdService	根据ID获取信息	http://{host}:{port}/../QueryOrgByIdService
+接口接收请求方式为HTTP POST方式，接收和返回报文为JSON格式。
+接口地址的域名、端口和路径的前半部分可以由厂商提供，在应用注册时通过连接器配置指定，路径后端的方法名需要按照上面表格定义实现。
+6.2.安全性说明
+6.2.1.接口协议
+应用系统提供HTTP（S）协议的账号管理接口。
+6.2.2.用户认证
+在调用接口时，为了防止非法调用，需要在每次请求中添加授权信息（如账号名、密码）。第三方应用服务端为统一身份认证平台系统提供接口调用的授权账号和密码。
+统一身份认证平台每次调用接口时，提供授权账号名、密码，报文字段详见SchemaService接口的报文字段说明。应用系统需要保证提供的授权账号密码的复杂度较高，建议为大写字母、小写字母、数字、特殊字符4选4的非弱口令。
+第三方应用服务端收到请求，校验授权账号和密码，校验通过则执行请求，校验不通过则返回错误提示。
+6.2.3.报文加密
+在调用接口时，为了防止数据泄露，可以对请求报文进行加密（密钥为16位）。统一身份认证平台每次调用接口时，对发送的报文内容进行加密。第三方应用服务端收到请求，对报文内容解密，并将响应报文加密后返回给统一身份认证平台。报文格式为JSON，默认不加密，对称加密类型可选范围有AES、AESNET和SM4。
+6.2.4.签名验证
+在调用接口时，为了防止数据篡改，可以在每次请求中添加签名信息。默认无签名，参数签名类型可选范围有MD5和SM3。
+若设置了签名类型，则统一身份认证平台每次调用接口时，对发送的报文内容进行签名，并把签名信息加入报文中，报文字段详见SchemaService接口的报文字段说明。
+第三方应用服务端收到请求，对签名进行校验，校验不通过则返回错误提示。
+签名的实现请参见附件10.1中的banboocloud_Codec-0.0.2.jar。
+6.3.SchemaService接口
+6.3.1.功能说明
+SchemaService的功能是定义第三方目标系统中“账号”等对象全部属性信息，包括属性名称、类型、是否必填字段、是否多值。用以建立起统一身份认证平台用户字段和三方目标系统账号字段的映射关系。集成的三方目标系统必须要实现此接口。
+6.3.2.请求报文说明
+6.3.2.1报文示例
+
+{
+	"bimRequestId": "9e928d12ec8a4c1bb75283b8df71308d",
+	"bimRemotePwd": "********",
+	"bimRemoteUser": "********",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+
+6.3.2.2报文字段说明
+bimRequestId ：BIM每次调用生成的随机ID，应用系统每次响应返回此ID，String类型。
+bimRemoteUser ：BIM调用三方应用接口的授权账号，由应用分配给BIM系统，String类型。
+bimRemotePwd ：BIM调用三方应用接口的密码，由应用分配给BIM系统，String类型。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+
+6.3.3.响应报文说明
+6.3.3.1报文示例
+{
+	"bimRequestId": "9e928d12ec8a4c1bb75283b8df71308d",
+	"account": [{
+		"multivalued": false,
+		"name": "attr1",
+		"required": true,
+		"type": "String"
+	}, {
+		"multivalued": false,
+		"name": "attr2",
+		"required": true,
+		"type": "String"
+	}, {
+		"multivalued": false,
+		"name": "attr3",
+		"required": true,
+		"type": "String"
+	},……],
+	"organization": [{
+		"multivalued": false,
+		"name": "attr4",
+		"required": true,
+		"type": "String"
+	}, {
+		"multivalued": false,
+		"name": "attr5",
+		"required": true,
+		"type": "String"
+	}, {
+		"multivalued": false,
+		"name": "attr6",
+		"required": true,
+		"type": "String"
+	}]
+}
+
+6.3.3.2报文字段说明
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型。
+account/organization/role :此接口定义的对象类型，可选值为account（账号）、organization（组织机构）、role（角色），如果只做账号管理，organization等其它对象可以不用定义。字段为数组类型。
+name ：定义对象的属性字段名称。字段为String类型。
+type ：定义对象的属性字段类型，可选值为String、int、double、float、long、byte、boolean。字段为String类型。
+required : 定义对象的属性字段在创建时是否为必填字段。可选值true或者false。字段为boolean类型。
+multivalued ：定义对象的属性字段是否为多值。可选值true或者false。字段为boolean类型。
+注：报文编码格式统一采用UTF-8。
+7.用户管理接口
+7.1.UserCreateService接口
+7.1.1.功能说明
+UserCreateService接口是应用系统的账号创建方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中创建指定账号。
+7.1.2.请求报文说明
+7.1.2.1报文示例
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	" attr1": "zhangsan",
+	" attr2": "000001",
+	" attr3": "张三",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+
+7.1.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+attr1/attr2/ attr3：三方应用系统通过SchemaService接口中定义的账号字段属性。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+7.1.3.响应报文说明
+7.1.3.1报文示例
+成功：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"uid": "89746776",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "账号创建失败，报错信息自定义"
+}
+7.1.3.2报文字段说明
+uid ：作为用户成功推送到下游系统，下游返回的一个成功标识，可以将统一用户推送过去的id或者username赋值给uid，返回给统一用户。
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+7.2.UserUpdateService接口
+7.2.1.功能说明
+UserUpdateService接口是应用系统的账号修改方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中更新指定的账号。
+7.2.2.请求报文说明
+7.2.2.1基本信息修改报文示例
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	"bimUid": "89746776",
+	" attr1": "lisi",
+	" attr2": "李四",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+7.2.2.2启用、禁用报文示例
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	"bimUid": "89746776",
+	" __ENABLE__": false,
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+7.2.2.3报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimUid: 三方应用系统账号创建时，返回给BIM应用系统的账号主键uid。必传字段。
+attr1/ attr2：需要修改的账号字段属性，默认只会传递修改过的属性。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+__ENABLE__ ：账号状态属性, __ENABLE__：true启用,__ENABLE__：false 禁用。
+注：报文编码格式统一采用UTF-8。
+7.2.3.响应报文说明
+7.2.3.1报文示例
+成功：
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "账号更新失败，报错信息自定义"
+}
+7.2.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+7.3.UserDeleteService接口
+7.3.1.功能说明
+UserDeleteService接口是应用系统的账号删除方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中删除指定账号。
+7.3.2.请求报文说明
+7.3.2.1报文示例
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	"bimUid": "89746776",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+7.3.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimUid : 三方应用系统账号创建时，返回给BIM应用系统的账号主键uid。必传字段。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+7.3.3.响应报文说明
+7.3.3.1报文示例
+成功：
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "账号删除失败，报错信息自定义"
+}
+7.3.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+7.4.QueryAllUserIdsService接口
+7.4.1.功能说明
+QueryAllUserIdsService是查询第三方应用系统账号唯一性主键ID列表的接口方法。统一身份管理系统调用应用系统实现的该接口用于查询应用系统中所有账号的ID。此ID需与用户创建，用户更新，用户删除接口中的uid字段值相同。
+对于在与身份认证系统集成前，已经有账号并希望纳入身份管理的应用系统，必须要实现接口6.4和6.5。
+7.4.2.请求报文说明
+7.4.2.1报文示例
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+7.4.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+7.4.3.响应报文说明
+7.4.3.1报文示例
+成功：
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "0",
+"userIdList": ["ID00001", "ID00002", "ID00003"],
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "账号列表获取失败"
+}
+7.4.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+userIdList ：账号主键ID列表，字段为String数组类型，必传字段。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+7.5.QueryUserByIdService接口
+7.5.1.功能说明
+QueryUserByIdService根据6.4接口查询返回的账号ID，查询账号的详细信息。统一身份管理系统调用应用系统实现的该接口用于查询应用系统中的指定账号。
+对于在与身份认证系统集成前，已经有账号并希望纳入身份管理的应用系统，必须要实现接口6.4和6.5。
+7.5.2.请求报文说明
+7.5.2.1报文示例
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+"bimUid": "ID00001",
+	"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+7.5.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimUid：QueryAllUserIdsService接口查询返回的账号ID。必传字段。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+7.5.3.响应报文说明
+7.5.3.1报文示例
+成功：
+{
+	"account": {
+		"attr1": "1000-10001-10000011",
+		"attr2": "zhangsan",
+		"attr3": "zhangsanFull",
+		"uid": "D00001"
+	},
+"resultCode": "0",
+	"message": "success",
+	"bimRequestId": "55528d12ec8a4c1bb75283b8df71308d "
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+7.5.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+account ：应用返回的账号json对象。必传字段。
+attr1/ attr2/ attr3: 第三方应用系统SchemaService接口中定义的账号字段属性。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+8.机构管理接口
+8.1.OrgCreateService接口
+8.1.1.功能说明
+OrgCreateService接口是应用系统的组织机构创建方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中创建指定的机构。
+8.1.2.请求报文说明
+8.1.2.1报文示例
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+"bimRemotePwd": "********",
+	"attr1": "集团信息中心",
+"attr2": "000001",
+"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+8.1.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+attr1/attr2：三方应用系统通过SchemaService接口中定义的组织机构字段属性。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+8.1.3.响应报文说明
+8.1.3.1报文示例
+成功：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"uid": "0000011",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+8.1.3.2报文字段说明
+uid：应用系统组织机构创建后，形成的全局唯一ID，此ID不能被修改，建议为数据库表主键。此ID返回至BIM系统，此后组织机构的修改和删除都以此ID为主键。字段为String类型，必传字段。
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+8.2.OrgUpdateService接口
+8.2.1.功能说明
+OrgUpdateService接口是应用系统的组织机构修改方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中更新指定的机构。
+8.2.2.请求报文说明
+8.2.2.1报文示例
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+"bimRemotePwd": "********",
+"bimOrgId": "0000011",
+	"attr1": "集团信息中心-改",
+"attr2": "000002",
+"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+
+}
+8.2.2.2启用/禁用报文示例
+{
+"__ENABLE__":false,
+"bimOrgId":"001012010001",
+"bimRemotePwd":"********",
+"bimRemoteUser":"********",
+"bimRequestId":"9ce945f1a713476bacb75f015f4fafa9",
+"signature":"fc6ad6a5948886586357cef025220825"
+}
+8.2.2.3报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimOrgId: 三方应用系统组织机构创建时，返回给BIM应用系统的组织机构主键orgId。必传字段。
+attr1/attr2：需要修改的组织机构字段属性，默认只会传递修改过的属性。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+__ENABLE__ ：机构状态属性，__ENABLE__：true启用，__ENABLE__：false禁用。
+注：报文编码格式统一采用UTF-8。
+8.2.3.响应报文说明
+8.2.3.1报文示例
+成功：
+{
+	"bimRequestId": "22928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+8.2.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+8.3.OrgDeleteService接口
+8.3.1.功能说明
+OrgDeleteService接口是应用系统的组织机构删除方法。统一身份管理系统调用应用系统实现的该接口用于在应用系统中删除指定的机构。没有此需求可以不实现。
+8.3.2.请求报文说明
+8.3.2.1报文示例
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+	"bimRemotePwd": "********",
+	"bimOrgId ": "000011",
+"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+8.3.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimOrgId: 三方应用系统组织机构创建时，返回给BIM应用系统的账号主键orgID。必传字段。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+8.3.3.响应报文说明
+8.3.3.1报文示例
+成功：
+{
+	"bimRequestId": "33928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "0",
+	"message": "success"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+8.3.3.2报文字段说明
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8。
+8.4.QueryAllOrgIdsService接口
+8.4.1.功能说明
+QueryAllOrgIdsService是查询第三方应用系统组织机构唯一性主键ID列表的接口方法。统一身份管理系统调用应用系统实现的该接口用于查询应用系统中所有机构的ID。此ID需与OrgCreateService、OrgUpdateService、OrgDeleteService接口中的orgID字段值相同。
+8.4.2.请求报文说明
+8.4.2.1报文示例
+{
+	"bimRequestId": "65428d12ec8a4c1bb75283b8df71308d",
+	"bimRemotePwd": "********",
+"bimRemoteUser": "********",
+"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+8.4.2.2报文字段说明
+bimRequestId ：BIM每次调用生成的随机ID，应用系统每次响应返回此ID，String类型。
+bimRemoteUser ：BIM调用三方应用接口的授权账号，由应用分配给BIM系统，String类型。
+bimRemotePwd ：BIM调用三方应用接口的密码，由应用分配给BIM系统，String类型。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8。
+8.4.3.响应报文说明
+8.4.3.1报文示例
+成功：
+{
+	"resultCode": "0",
+	"message": "success",
+	"orgIdList": ["0000011", "0000012", "0000013"],
+	"bimRequestId": "47f591ceca2c410a9fe092af05987f40"
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+8.4.3.2报文字段说明
+orgIdList：组织机构主键ID列表，字段为String数组类型，必传字段。
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8.
+8.5.QueryOrgByIdService接口
+8.5.1.功能说明
+根据QueryAllOrgIdsService接口查询返回的组织机构ID，查询组织机构的详细信息。统一身份管理系统调用应用系统实现的该接口用于查询应用系统中的制定机构属性。
+8.5.2.BIM请求报文说明
+8.5.2.1报文示例
+{
+	"bimRequestId": "55528d12ec8a4c1bb75283b8df71308d",
+	"bimRemoteUser": "********",
+"bimRemotePwd": "********",
+"bimOrgId": " 000012",
+"signature": "8dfb0b7f7fccb823a7896e24a9fb8008"
+}
+8.5.2.2报文字段说明
+bimRequestId/bimRemotePwd/bimRemoteUser :BIM接口调用的必传字段，说明见SchemaService。
+bimOrgId: QueryAllOrgIdsService接口查询返回的组织机构ID。必传字段。
+signature：BIM每次调用生成的签名，应用系统需对签名进行验证，String类型。
+注：报文编码格式统一采用UTF-8.
+8.5.3.响应报文说明
+8.5.3.1报文示例
+成功：
+{
+	"organization": {
+		"attr1": "信息中心应用处",
+		"attr2": "000001",
+		"attr3": "000012"
+	},
+"resultCode": "0",
+	"message": "success",
+	"bimRequestId": "55528d12ec8a4c1bb75283b8df71308d "
+}
+失败：
+{
+	"bimRequestId": "11928d12ec8a4c1bb75283b8df71308d",
+	"resultCode": "500",
+	"message": "报错信息自定义"
+}
+
+8.5.3.2报文字段说明
+organization：应用返回的账号json对象。必传字段。
+attr1/attr2/attr3: 第三方应用系统SchemaService接口中定义的组织机构字段属性。
+resultCode ：接口调用处理的结果码，0为正常处理，其它值由应用系统定义。字段为String类型，必传字段。
+message ：接口调用处理的信息。字段为String类型。
+bimRequestId :BIM每次调用接口发送的请求ID，字段为String类型，必传字段。
+注：报文编码格式统一采用UTF-8.
+
+9.如何调用
+IAM数据同步接口由统一身份认证平台调用，调用样例请参考接口规范。附件中是供上、下游集成应用开发人员参考的接口实现演示，使用前请仔细阅读其中的使用说明。
+注意：该演示仅供第三方应用系统开发人员参考，该演示仅展示了加密、解密、验签的过程以及返回值的组成方式，并不包含完整的业务逻辑以及安全措施，因此不能直接在生产环境中进行部署。最终的代码要开发人员自行开发，由于使用该演示代码导致的一切后果，由开发人员自行承担。
+
+10.附件
+10.1.用户同步对接演示

@@ -1,0 +1,35 @@
+{
+  "export": {
+    "type": "Typ",
+    "name": "Name",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "dealer": "Händlerfiliale",
+    "region": "Region",
+    "annualSalesVolume": "Jährlicher Verkaufsumfang",
+    "expectedPurchaseDate": "Erwarteter Kaufdatum",
+    "postalCode": "Postleitzahl",
+    "city": "Stadt",
+    "crmCityCode": "CRM-Stadtcode",
+    "country": "Land",
+    "vehicleType": "Fahrzeugtyp",
+    "vehicleVin": "VIN-Code",
+    "carColor": "Fahrzeugfarbe",
+    "message": "Nachricht",
+    "createTime": "Erstellungszeit"
+  },
+  "type": {
+    "BUSINESS": "Geschäftliche Zusammenarbeit",
+    "BUSINESS_DEALER": "Händlerpartnerschaft",
+    "BUSINESS_CORPORATE_FLEET": "Fuhrparkpartnerschaft",
+    "BUSINESS_SUPPLY_TECH": "Lieferanten- & Technologiepartnerschaft",
+    "BUSINESS_BRAND": "Markenpartnerschaft",
+    "PURCHASE_INTENTION": "Kaufabsicht",
+    "SERVICE_SUPPORT": "Service & Support",
+    "WEBSITE_BUILDING": "Website-Erstellung",
+    "TEST_DRIVE": "Probefahrt"
+  },
+  "validation": {
+    "duplicate_submission": "Diese Telefonnummer oder E-Mail wurde innerhalb des letzten Monats bereits eingereicht. Bitte wiederholen Sie die Einreichung nicht."
+  }
+}

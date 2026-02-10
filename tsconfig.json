@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "es2020",
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./",
+    "incremental": true,
+    "paths": {
+      "@modules/*": ["src/modules/*"],
+      "@common/*": ["src/common/*"],
+      "@tasks/*": ["src/tasks/*"],
+      "@core/*": ["src/core/*"],
+      "@i18n/*": ["src/i18n/*"],
+      "@cache/*": ["src/cache/*"],
+      "@database/*": ["src/database/*"],
+      "@gateways/*": ["src/gateways/*"],
+      "@constants/*": ["src/constants/*"],
+      "@utils/*": ["src/utils/*"],
+      "@typings/*": ["src/types/*"]
+    },
+  },
+}

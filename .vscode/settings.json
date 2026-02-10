@@ -1,0 +1,62 @@
+{
+  "editor.rulers": [
+    150
+  ],
+  "explorer.confirmDragAndDrop": false,
+  "html.format.wrapAttributes": "auto",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "explorer.confirmDelete": true,
+  "git.ignoreLegacyWarning": true,
+  "terminal.integrated.shell.osx": "/bin/zsh",
+  "editor.suggestSelection": "first",
+  "editor.tabSize": 2,
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+    "**/dist/*/**": true,
+    "**/coverage/*/**": true
+  },
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.tslint": "explicit",
+    "source.fixAll.stylelint": "explicit"
+  },
+  "[markdown]": {
+    "editor.formatOnSave": false
+  },
+  "[javascript]": {
+    "editor.formatOnSave": false
+  },
+  "[json]": {
+    "editor.formatOnSave": false
+  },
+  "[jsonc]": {
+    "editor.formatOnSave": false
+  },
+  "files.associations": {
+    "*.conf": "shellscript",
+    "*.json": "jsonc",
+    ".prettierrc": "json",
+    ".stylelintrc": "json",
+    ".htmlhintrc": "json"
+  },
+  "cSpell.words": [
+    "metatype",
+    "nestjs",
+    "prebuild",
+    "setex",
+    "typeorm",
+    "websockets"
+  ],
+  "workbench.colorCustomizations": {
+    "minimap.background": "#00000000",
+    "scrollbar.shadow": "#00000000"
+  },
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
+}

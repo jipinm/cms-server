@@ -1,0 +1,35 @@
+{
+  "export": {
+    "type": "Type",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "dealer": "Dealer Store",
+    "region": "Region",
+    "annualSalesVolume": "Annual Sales Volume",
+    "expectedPurchaseDate": "Expected Purchase Date",
+    "postalCode": "Postal Code",
+    "city": "City",
+    "crmCityCode": "CRM City Code",
+    "country": "Country",
+    "vehicleType": "Vehicle Type",
+    "vehicleVin": "VIN Code",
+    "carColor": "Car Color",
+    "message": "Message",
+    "createTime": "Create Time"
+  },
+  "type": {
+    "BUSINESS": "Business Cooperation",
+    "BUSINESS_DEALER": "Dealer Partnership",
+    "BUSINESS_CORPORATE_FLEET": "Corporate Fleet Partnership",
+    "BUSINESS_SUPPLY_TECH": "Supply & Technology Partnership",
+    "BUSINESS_BRAND": "Brand Partnership",
+    "PURCHASE_INTENTION": "Purchase Intention",
+    "SERVICE_SUPPORT": "Service Support",
+    "WEBSITE_BUILDING": "Website Building",
+    "TEST_DRIVE": "Test Drive"
+  },
+  "validation": {
+    "duplicate_submission": "This phone number or email has been submitted within the last month. Please do not submit again."
+  }
+}

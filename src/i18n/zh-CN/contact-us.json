@@ -1,0 +1,35 @@
+{
+  "export": {
+    "type": "类型",
+    "name": "姓名",
+    "phone": "电话",
+    "email": "邮箱",
+    "dealer": "经销商门店",
+    "region": "区域",
+    "annualSalesVolume": "年销量",
+    "expectedPurchaseDate": "预期购买日期",
+    "postalCode": "邮政编码",
+    "city": "城市",
+    "crmCityCode": "CRM城市代码",
+    "country": "国家",
+    "vehicleType": "车型",
+    "vehicleVin": "VIN码",
+    "carColor": "车身颜色",
+    "message": "留言内容",
+    "createTime": "创建时间"
+  },
+  "type": {
+    "BUSINESS": "商务合作",
+    "BUSINESS_DEALER": "经销商合作",
+    "BUSINESS_CORPORATE_FLEET": "大客户合作",
+    "BUSINESS_SUPPLY_TECH": "供应技术合作",
+    "BUSINESS_BRAND": "品牌合作",
+    "PURCHASE_INTENTION": "购车意向",
+    "SERVICE_SUPPORT": "服务支持",
+    "WEBSITE_BUILDING": "网站建设",
+    "TEST_DRIVE": "预约试驾"
+  },
+  "validation": {
+    "duplicate_submission": "该手机号或邮箱在1个月内已提交过，请勿重复提交"
+  }
+}
